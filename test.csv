@@ -1,0 +1,5 @@
+objects,nominal,contrnominal,ordinal,interval,regular
+obj1,A,B,high,mid,X
+obj2,B,C,mid,low,
+obj3,C,A,low,high,X
+obj4,B,B,low,mid,
