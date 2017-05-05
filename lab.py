@@ -1,6 +1,7 @@
 from concepts import Context, Definition
 import pandas as pd
 import sys
+import itertools as itt
 
 def transform_nominal(dataframe, col_name, col_values):
     for value in col_values:
@@ -46,6 +47,7 @@ def transform_columns(dataframe, col_defs):
 def build_iceberg_lattice(filename, lattice, threshold):
     irreducable = []
     for i, (intent, extent) in enumerate(lattice):
+        coverage = list(intent)
         if (len(intent) < threshold):
             continue
         is_irreducable = True
@@ -58,8 +60,12 @@ def build_iceberg_lattice(filename, lattice, threshold):
                     is_subset = False
                     break
             if is_subset:
-                is_irreducable = False
-                break
+                for obj in intent1:
+                    if obj in coverage:
+                        coverage.remove(obj)
+                if (len(coverage) == 0):
+                    is_irreducable = False
+                    break
         if is_irreducable:
             irreducable.append((intent, extent))
             #print intent, extent
@@ -70,6 +76,38 @@ def build_iceberg_lattice(filename, lattice, threshold):
         df.add_object(obj_name, list(extent))
     conc = Context(*df)
     conc.tofile(filename='iceberg.' + filename, frmat='csv')
+
+def is_sublist(parent, child):
+    for el in child:
+        if not(el in parent):
+            return False
+    return True
+        
+def find_implication_basis(cont):
+    pseudointents = []
+    objs = list(cont.objects)
+    j = 1
+    for i in xrange(1, len(objs)):
+        for subset in itt.combinations(objs, i):
+            #Checking first pseudointent condition
+            subset = list(subset)
+            #print str(j) + " " + str(subset)
+            j += 1
+            intension = list(cont.intension(subset))
+            extension = list(cont.extension(intension))
+            if (len(subset) >= len(extension)):
+                #print "Rejected first: " + str((subset, extension))
+                continue
+                
+            #checking second pseudointent condition
+            second_passed = True
+            for conf_intent, conf_extent in pseudointents:
+                if (is_sublist(subset, conf_intent) and (not is_sublist(subset, conf_extent))):
+                    #print "Rejected second: " + str((subset, extension))
+                    second_passed = False
+            if second_passed:
+                pseudointents.append((subset, extension))
+    return pseudointents
 
 def main():
     #print sys.argv
@@ -103,16 +141,21 @@ def main():
     f = open('lattice.dot', 'w')
     f.write(lattice_str)
     f.close()
-    context.lattice.graphviz()
+    #context.lattice.graphviz()
 
     build_iceberg_lattice(filename, context.lattice, iceberg_threshold)
     iceberg_context = Context.fromfile(filename='iceberg.' + filename, frmat='csv')
-    iceberg_context.lattice.graphviz()
+    if draw_iceberg:
+   	iceberg_context.lattice.graphviz(view=True)
 
     lattice_str = str(iceberg_context.lattice.graphviz())
     f = open('iceberg.dot', 'w')
     f.write(lattice_str)
     f.close()
 
+    implication_basis = find_implication_basis(iceberg_context)
+    print "Implication basis: "
+    for i, e in implication_basis:
+	print str(i) + " => " + str(e)
 
 if __name__ == "__main__": main()
