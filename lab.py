@@ -40,7 +40,7 @@ def transform_column(dataframe, col_name, col_type):
 def transform_columns(dataframe, col_defs):
     dataframe.columns = ([''] + list(dataframe.columns[1:]))
     for i, col in enumerate(dataframe.columns):
-        if (i == 0):
+        if ((i == 0) or not (col in col_defs)):
             continue
         transform_column(dataframe, col, col_defs[col])
 
@@ -134,6 +134,7 @@ def main():
 	dataframe = dataframe[[dataframe.columns[0]] + cols_to_use]
     col_info = pd.read_csv('cols.' + filename)
     transform_columns(dataframe, col_info)
+    dataframe = dataframe.drop_duplicates(subset=list(dataframe.columns[0:1]), keep='first')
     dataframe.to_csv('transformed.' + filename, index_label=False, index=False)
 
     context = Context.fromfile('transformed.' + filename, frmat='csv')
