@@ -5,22 +5,22 @@ import itertools as itt
 
 def transform_nominal(dataframe, col_name, col_values):
     for value in col_values:
-        dataframe[col_name + '_' + value] = dataframe[col_name].apply(lambda x: 'X' if x == value else None)
+        dataframe[col_name + '_' + value] = dataframe[col_name].apply(lambda x: 'X' if str(x) == value else None)
     del dataframe[col_name]
     
 def transform_counternominal(dataframe, col_name, col_values):
     for value in col_values:
-        dataframe[col_name + '_' + value] = dataframe[col_name].apply(lambda x: None if x == value else 'X')
+        dataframe[col_name + '_' + value] = dataframe[col_name].apply(lambda x: None if str(x) == value else 'X')
     del dataframe[col_name]
     
 def transform_ordinal(dataframe, col_name, col_values):
-    dataframe[col_name] = dataframe[col_name].apply(lambda x: col_values.index(x))
+    dataframe[col_name] = dataframe[col_name].apply(lambda x: col_values.index(str(x)))
     for i in xrange(len(col_values)):
         dataframe[col_name + '_<=' + col_values[i]] = dataframe[col_name].apply(lambda x: 'X' if x <= i else None)
     del dataframe[col_name]
     
 def transform_interval(dataframe, col_name, col_values):
-    dataframe[col_name] = dataframe[col_name].apply(lambda x: col_values.index(x))
+    dataframe[col_name] = dataframe[col_name].apply(lambda x: col_values.index(str(x)))
     for i in xrange(len(col_values)):
         dataframe[col_name + '_<=' + col_values[i]] = dataframe[col_name].apply(lambda x: 'X' if x <= i else None)
     for i in xrange(len(col_values)):
@@ -85,17 +85,17 @@ def is_sublist(parent, child):
         
 def find_implication_basis(cont):
     pseudointents = []
-    objs = list(cont.objects)
+    props = list(cont.properties)
     j = 1
-    for i in xrange(1, len(objs)):
-        for subset in itt.combinations(objs, i):
+    for i in xrange(1, len(props)):
+        for subset in itt.combinations(props, i):
             #Checking first pseudointent condition
             subset = list(subset)
             #print str(j) + " " + str(subset)
             j += 1
-            intension = list(cont.intension(subset))
-            extension = list(cont.extension(intension))
-            if (len(subset) >= len(extension)):
+            extension = list(cont.extension(subset))
+            intension = list(cont.intension(extension))
+            if (len(subset) >= len(intension)):
                 #print "Rejected first: " + str((subset, extension))
                 continue
                 
@@ -106,7 +106,7 @@ def find_implication_basis(cont):
                     #print "Rejected second: " + str((subset, extension))
                     second_passed = False
             if second_passed:
-                pseudointents.append((subset, extension))
+                pseudointents.append((subset, intension))
     return pseudointents
 
 def main():
